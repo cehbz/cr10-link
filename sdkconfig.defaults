@@ -1,0 +1,8 @@
+CONFIG_IDF_TARGET="esp32s3"
+
+# Two OTA slots, no factory app: see partitions.csv.
+CONFIG_PARTITION_TABLE_CUSTOM=y
+CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
+
+# Rollback lives in the bootloader, which only a USB flash writes.
+CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y

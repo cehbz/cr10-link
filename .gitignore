@@ -1,0 +1,15 @@
+# ESP-IDF build output (app and test/host)
+build/
+sdkconfig
+sdkconfig.old
+managed_components/
+.cache/
+
+# Credentials: copied from credentials.h.template
+credentials.h
+
+# macOS / editors
+.DS_Store
+.vscode/
+.idea/
+*.swp
