@@ -8,4 +8,3 @@ idf_component_register(
     PRIV_REQUIRES app_update esp_event esp_http_server esp_netif esp_wifi lwip nvs_flash
 )
 
-target_compile_options(${COMPONENT_LIB} PRIVATE -std=gnu++2b)

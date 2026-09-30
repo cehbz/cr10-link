@@ -3,4 +3,3 @@ idf_component_register(
     REQUIRES unity marlin
 )
 
-target_compile_options(${COMPONENT_LIB} PRIVATE -std=gnu++2b)
