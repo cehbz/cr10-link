@@ -2,24 +2,36 @@
 
 Printer background: `~/.claude/knowledge/projects/cr10.md`.
 
-## 1. Printer link, TCP console, OTA
+## 1. Printer link, TCP console, OTA: hardware bring-up
 
-- USB host on the S3 with `usb_host_ftdi_vcp` for the Melzi's FT232R.
-- Open at 115200 8N1 without asserting DTR: DTR resets the ATmega1284P.
-- Reset command that pulses DTR.
-- Reconnect on detach and on printer power cycle.
-- WiFi STA with the fixed address from `credentials.h`; TCP console bridged to the printer.
-- OTA update over WiFi. Rollback is enabled in the bootloader: mark the image valid
-  once WiFi and the console are up.
-- Hardware checks: Melzi J5 on the regulator position; FT232R enumerates; connecting
-  does not reset the printer; the reset command does; an OTA update boots.
+Written and building; nothing verified on hardware. Commands are in the README.
+
+- Fill in `main/credentials.h` (gitignored; placeholders from the template): WiFi SSID
+  and password, a fixed IP outside the DHCP pool.
+- Build and first flash over USB with the S3 on its own, not on the printer.
+- Wire ISP header pin 2 → S3 5V, pin 6 → S3 GND; C-to-mini-B cable into the Melzi.
+- Melzi J5 on the regulator position; the S3 runs from the Melzi 5 V rail.
+- FT232R enumerates: UART0 log shows `ftdi_link: printer connected`.
+- Console round trip: `M115` answered.
+- `POST /reset` resets the printer: Marlin's `start` banner on the console, boot screen
+  on the LCD.
+- Connecting does not reset the printer: USB cable unplug and replug with a console
+  client attached reconnects with no `start` banner.
+- S3 reboot (OTA, EN button) with the printer running: no boot screen on the LCD.
+- Printer power cycle: S3 and link come back.
+- OTA: an update boots and logs `image marked valid`; an image that never gets WiFi rolls
+  back after a power cycle.
+- Capture printer output for phase 2's tests: `M115`, `M105`, `M155 S2`, `M27`, `M20`,
+  and a line with a bad checksum (Error/Resend).
 
 ## 2. Marlin line protocol
 
-- Single owner of the serial link; the console and later the HTTP API go through it.
-- Classify responses: `ok`, temperature reports, `echo:`, `Error:`, `Resend:`.
-- Line numbers and checksums (`N… *cs`), with resend handling.
-- Host tests against recorded printer output.
+`components/marlin` exists with host tests on lines built from Marlin's source formats.
+
+- Route the console through it. USB receive runs in the driver task and must not block,
+  so bytes are handed to the task that owns the protocol; call `Reset()` on reconnect,
+  printer reset and write failure.
+- Replace the test inputs with the output captured during bring-up.
 
 ## 3. OctoPrint status API
 
@@ -43,7 +55,8 @@ Printer background: `~/.claude/knowledge/projects/cr10.md`.
 - `POST /api/job`: pause, resume, cancel.
 - `POST /api/printer/command`.
 - `POST /api/files/local/<name>`: select, print.
-- Determine how to cancel an SD print on Marlin 2.1.2.8, from source.
+- Determine how to cancel an SD print on Marlin 2.1.2.8, from source. Lead: the emergency
+  parser handles `M524` (`feature/e_parser.h`, `EP_M524`).
 
 ## 6. Marlin reflash over the link
 

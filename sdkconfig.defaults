@@ -6,3 +6,7 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 
 # Rollback lives in the bootloader, which only a USB flash writes.
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
+
+# The USB PHY belongs to the OTG host (printer link), so the console is UART0 only.
+CONFIG_ESP_CONSOLE_UART_DEFAULT=y
+CONFIG_ESP_CONSOLE_SECONDARY_NONE=y

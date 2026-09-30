@@ -3,8 +3,9 @@ if(NOT EXISTS "${CMAKE_CURRENT_LIST_DIR}/credentials.h")
 endif()
 
 idf_component_register(
-    SRCS "main.cpp"
+    SRCS "main.cpp" "ftdi_link.cpp" "console_server.cpp" "control_server.cpp" "wifi_station.cpp"
     INCLUDE_DIRS "."
+    PRIV_REQUIRES app_update esp_event esp_http_server esp_netif esp_wifi lwip nvs_flash
 )
 
 target_compile_options(${COMPONENT_LIB} PRIVATE -std=gnu++2b)

@@ -33,10 +33,68 @@ ESP-IDF v6.
 cp credentials.h.template main/credentials.h   # then fill it in
 idf.py set-target esp32s3
 idf.py build
-idf.py -p /dev/cu.usbmodem* flash monitor       # first flash only
+idf.py -p /dev/cu.usbmodem* flash               # first flash only
 ```
 
 Partition table: two 1984 KB OTA slots, no factory app (`partitions.csv`).
+
+Once the firmware runs, the USB PHY belongs to the host controller and the S3's
+USB-Serial-JTAG port disappears. A later USB flash needs ROM download mode: hold BOOT
+while plugging in the USB-C cable. The log console is UART0 only, 115200, GPIO43 (TX) and
+GPIO44 (RX), read with a 3.3 V USB-UART adapter:
+
+```
+idf.py -p /dev/cu.usbserial-* monitor
+```
+
+## Network interface
+
+Addresses below use the template's `kIpAddress`, 192.168.1.50. Nothing is authenticated:
+anyone on the LAN can use the console, reset the printer and replace the firmware.
+
+### OTA update
+
+```
+idf.py build
+curl --data-binary @build/cr10-link.bin -H 'Expect:' http://192.168.1.50/ota
+```
+
+The image is written to the passive slot and the S3 reboots into it. The new image
+marks itself valid once WiFi has its address (the console is already listening by
+then). Until then it is pending: if the S3 resets before that, the bootloader boots the
+previous image. The S3 is powered from the printer, so a printer power cycle is that
+reset. An upload is refused (409) while the running image is still pending.
+
+### Printer console
+
+Raw TCP on port 2323, bytes passed through unchanged in both directions:
+
+```
+nc 192.168.1.50 2323
+```
+
+The terminal's line discipline supplies local echo and turns Marlin's bare LF into CRLF.
+For picocom, bridge the socket to a pty:
+
+```
+socat pty,link=/tmp/cr10,raw,echo=0 tcp:192.168.1.50:2323 &
+picocom --imap lfcrlf --echo --emap crcrlf /tmp/cr10
+```
+
+One client at a time: a second connection receives `cr10-link: console in use` and is
+closed. A client that vanishes without closing is dropped by TCP keepalive after about
+25 s. Printer output while no client is connected is discarded.
+
+Connecting to the printer never asserts DTR, so it does not reset the printer.
+
+### Printer reset
+
+```
+curl -X POST http://192.168.1.50/reset
+```
+
+Pulses DTR (100 ms), which resets the ATmega through the Melzi's 100 nF coupling
+capacitor. Returns 503 while the printer's USB serial port is not connected.
 
 ## Host tests
 
